@@ -1,41 +1,47 @@
 'use strict';
 
 const express = require('express');
-const Users= require('./models/users-model');
-const basicAuth = require('./middleware/basic');
+const authRouter = express.Router();
+
+const User = require('./models/users.js');
+const basicAuth = require('./middleware/basic.js');
 const bearerAuth = require('./middleware/bearer-auth');
 
-const router = express.Router();
+authRouter.post('/signup', async (req, res, next) => {
+  try {
+    let user = new User(req.body);
+    console.log('user------>',user)
+    const userRecord = await user.save();
+    const output = {
+      user: userRecord,
+      token: userRecord.token
+    };
 
-
-router.post('/signup', async (req, res) => {
-
-    try {
-      // req.body.password = await bcrypt.hash(req.body.password, 10);
-      const user = new Users(req.body);
-      const record = await user.save(req.body);
-      res.status(201).json(record);
-    } catch (e) { res.status(403).send("Error Creating User"); }
-  });
-
-
-  router.post('/signin',basicAuth, async (req, res) => {
-
-       res.status(200).json(req.user);
-  
-  });
-  router.post('/signin',basicAuth, async (req, res) => {
-
-    res.status(200).json(req.user);
-
-    // {user:req.user,token:req.token}
-   
-
+    res.status(201).json(output);
+  } catch (e) {
+    console.log('eeeeeeee',e)
+    next(e.message);
+  }
 });
-router.get('/secret',bearerAuth,(req,res)=>{
-  res.send('welcom to my secret')
-})
+
+authRouter.post('/signin', basicAuth, (req, res, next) => {
+  const user = {
+    user: req.user,
+    token: req.user.token
+  };
+  console.log('user from signn----->',user)
+  res.status(200).json(user);
+});
+
+authRouter.get('/users', bearerAuth, async (req, res, next) => {
+  const users = await User.find({});
+  const list = users.map(user => user.username);
+  res.status(200).json(list);
+});
+
+authRouter.get('/secret', bearerAuth, async (req, res, next) => {
+  res.status(200).send("Welcome to the secret area!");
+});
 
 
-
-  module.exports= router;
+module.exports = authRouter;

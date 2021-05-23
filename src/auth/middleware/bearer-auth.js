@@ -1,32 +1,21 @@
 'use strict';
 
-// const jwt = require('jsonwebtoken');
-const UserModel = require('../models/users-model');
+const users = require('../models/users.js');
 
 module.exports = async (req, res, next) => {
-    // a token in the req headers 
-    // Authorization header value will be "Bearer token"
-    if (!req.headers.authorization) {
-        next('Not Logged-in user');
-        // res.status(403).send()
-    } else {
-        // get the token from headers
-        try {
-            let token = req.headers.authorization.split(' ').pop();
-            console.log("token in Bearer Auth:: ", token);
-            let user = UserModel.authenticateToken(token);
-            if (user) {
-                req.user = user;
-                next();
-            } else {
-                next('Invalid Token!!!!');
-            }
 
-        } catch(ex) {
-            // next('Invalid User Token ')
-            res.status(403).send('Invalid Token!!!!');
+  try {
 
-        }
-    }
-        
+    if (!req.headers.authorization) { next('Invalid Login') }
+
+    const token = req.headers.authorization.split(' ').pop();
+    const validUser = await users.authenticateWithToken(token);
+
+    req.user = validUser;
+    req.token = validUser.token;
+    next();
+
+  } catch (e) {
+    res.status(403).send('Invalid Login');;
+  }
 }
